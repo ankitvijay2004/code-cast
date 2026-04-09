@@ -1,51 +1,68 @@
-# CodeCast - Real-time Code Collaboration
+# CodeCast
 
-CodeCast is a real-time code collaboration web application that allows multiple users to collaborate on code in the same virtual room. It's built using the MERN (MongoDB, Express.js, React, Node.js) stack and Socket.IO for real-time communication.
+CodeCast is a real-time collaborative coding app built with React, Node.js, Express, and Socket.IO. Multiple users can join the same room, edit code together, and run code from a built-in compiler panel.
 
-## Live Demo
+## Highlights
 
-You can try out CodeCast by visiting the [live demo](https://codecast-324z.onrender.com). Create or join a room and start collaborating with others in real time!
+- Real-time collaborative editing
+- Room-based sharing with generated room IDs
+- Username-based participant list
+- Built-in compiler output panel
+- Modern glassmorphism UI with dark/light theme support
+- Responsive layout for desktop and mobile
 
+## Tech Stack
 
-## Features
+- React
+- Node.js
+- Express
+- Socket.IO
+- CodeMirror
+- Axios
+- Bootstrap
 
-- Create or join a virtual "room" by entering a room ID.
-- Set your username to identify yourself in the room.
-- Real-time code collaboration with other users in the same room.
-- Changes made by one user are instantly reflected on all connected clients.
-- Code highlighting and editor customization options.
+## Local Setup
 
-## Technologies Used
+The project is split into two apps:
 
-- Express.js: Handling API requests.
-- React: Building the front-end interface.
-- Node.js: Running the server.
-- Socket.IO: Enabling real-time communication.
-- uuid: Generating unique room IDs.
-- CodeMirror: Providing the code editor.
+- Client: client
+- Server: server
 
-## Usage
+### 1) Install dependencies
 
-1. Open the [CodeCast live demo](https://codecast-324z.onrender.com).
-2. Enter a Room ID or generate a new one.
-3. Set your username.
-4. Start collaborating with others in the same room.
+Install packages in both folders:
 
-## Development
+- client
+- server
 
-If you want to run CodeCast locally or contribute to its development, follow these steps:
+### 2) Configure the client backend URL
 
-1. Clone the repository:
+If needed, set REACT_APP_BACKEND_URL to http://localhost:5000.
 
-   ```bash
-   git clone https://github.com/yourusername/codecast.git
-   cd codecast
-   ```
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Start the development server:
-   ```
-   npm start
-   ```
+### 3) Start the server
+
+Run the Node server from the server folder.
+
+### 4) Start the client
+
+Run the React app from the client folder.
+
+## How to use
+
+1. Open the app in your browser.
+2. Enter your name.
+3. Paste or generate a room ID.
+4. Join the room and start coding.
+5. Use the compiler panel to run code.
+
+## API
+
+- GET / — health/status response
+- GET /health — health check
+- POST /compile — sends code to the compiler service
+
+## Notes
+
+- The compiler uses the backend server.
+- The app is optimized for room-based collaboration rather than one-off solo editing.
+- If the compiler does not work, check your environment variables for the external compiler service credentials.
