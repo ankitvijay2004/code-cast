@@ -46,6 +46,7 @@ function EditorPage() {
   const { roomId } = useParams();
 
   const socketRef = useRef(null);
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
 
   useEffect(() => {
     const init = async () => {
@@ -115,7 +116,7 @@ function EditorPage() {
   const runCode = async () => {
     setIsCompiling(true);
     try {
-      const response = await axios.post("http://localhost:5000/compile", {
+      const response = await axios.post(`${backendUrl}/compile`, {
         code: codeRef.current,
         language: selectedLanguage,
       });
