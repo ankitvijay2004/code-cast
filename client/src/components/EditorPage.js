@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Client from "./Client";
 import Editor from "./Editor";
 import { initSocket } from "../Socket";
@@ -44,43 +44,48 @@ function EditorPage() {
   const Location = useLocation();
   const navigate = useNavigate();
   const { roomId } = useParams();
+  const username = Location.state?.username;
 
   const socketRef = useRef(null);
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
 
   useEffect(() => {
+    let socket;
+
     const init = async () => {
-      socketRef.current = await initSocket();
+      socket = await initSocket();
+      socketRef.current = socket;
+
       const handleErrors = (err) => {
         console.log("Error", err);
         toast.error("Socket connection failed, Try again later");
         navigate("/");
       };
 
-      socketRef.current.on("connect_error", (err) => handleErrors(err));
-      socketRef.current.on("connect_failed", (err) => handleErrors(err));
+      socket.on("connect_error", (err) => handleErrors(err));
+      socket.on("connect_failed", (err) => handleErrors(err));
 
-      socketRef.current.emit(ACTIONS.JOIN, {
+      socket.emit(ACTIONS.JOIN, {
         roomId,
-        username: Location.state?.username,
+        username,
       });
 
-      socketRef.current.on(
+      socket.on(
         ACTIONS.JOINED,
-        ({ clients, username, socketId }) => {
-          if (username !== Location.state?.username) {
-            toast.success(`${username} joined the room.`);
+        ({ clients, username: joinedUserName, socketId }) => {
+          if (joinedUserName !== username) {
+            toast.success(`${joinedUserName} joined the room.`);
           }
           setClients(clients);
-          socketRef.current.emit(ACTIONS.SYNC_CODE, {
+          socket.emit(ACTIONS.SYNC_CODE, {
             code: codeRef.current,
             socketId,
           });
         }
       );
 
-      socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
-        toast.success(`${username} left the room`);
+      socket.on(ACTIONS.DISCONNECTED, ({ socketId, username: leftUserName }) => {
+        toast.success(`${leftUserName} left the room`);
         setClients((prev) => {
           return prev.filter((client) => client.socketId !== socketId);
         });
@@ -89,15 +94,13 @@ function EditorPage() {
     init();
 
     return () => {
-      socketRef.current && socketRef.current.disconnect();
-      socketRef.current.off(ACTIONS.JOINED);
-      socketRef.current.off(ACTIONS.DISCONNECTED);
+      if (socket) {
+        socket.off(ACTIONS.JOINED);
+        socket.off(ACTIONS.DISCONNECTED);
+        socket.disconnect();
+      }
     };
-  }, []);
-
-  if (!Location.state) {
-    return <Navigate to="/" />;
-  }
+  }, [navigate, roomId, username]);
 
   const copyRoomId = async () => {
     try {
@@ -134,12 +137,21 @@ function EditorPage() {
     setIsCompileWindowOpen(!isCompileWindowOpen);
   };
 
+  const handleCodeChange = useCallback((code) => {
+    codeRef.current = code;
+    setLastEditAt(Date.now());
+  }, []);
+
   const getActivityLabel = () => {
     const diff = Date.now() - lastEditAt;
     if (diff < 2000) return "Live typing";
     if (diff < 10000) return "Syncing recent changes";
     return "Idle, ready for the next edit";
   };
+
+  if (!Location.state) {
+    return <Navigate to="/" />;
+  }
 
   return (
     <div className="editor-shell page-bg">
@@ -228,10 +240,7 @@ function EditorPage() {
           <Editor
             socketRef={socketRef}
             roomId={roomId}
-            onCodeChange={(code) => {
-              codeRef.current = code;
-              setLastEditAt(Date.now());
-            }}
+            onCodeChange={handleCodeChange}
           />
         </main>
       </div>

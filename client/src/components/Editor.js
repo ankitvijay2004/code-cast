@@ -9,52 +9,65 @@ import { ACTIONS } from "../Actions";
 
 function Editor({ socketRef, roomId, onCodeChange }) {
   const editorRef = useRef(null);
-  useEffect(() => {
-    const init = async () => {
-      const editor = CodeMirror.fromTextArea(
-        document.getElementById("realtimeEditor"),
-        {
-          mode: { name: "javascript", json: true },
-          theme: "dracula",
-          autoCloseTags: true,
-          autoCloseBrackets: true,
-          lineNumbers: true,
-        }
-      );
-      // for sync the code
-      editorRef.current = editor;
 
-      editor.setSize("100%", "100%");
-      editorRef.current.on("change", (instance, changes) => {
-        // console.log("changes", instance ,  changes );
-        const { origin } = changes;
-        const code = instance.getValue(); // code has value which we write
-        onCodeChange(code);
-        if (origin !== "setValue") {
-          socketRef.current.emit(ACTIONS.CODE_CHANGE, {
-            roomId,
-            code,
-          });
-        }
-      });
+  useEffect(() => {
+    if (editorRef.current) {
+      return;
+    }
+
+    const editor = CodeMirror.fromTextArea(
+      document.getElementById("realtimeEditor"),
+      {
+        mode: { name: "javascript", json: true },
+        theme: "dracula",
+        autoCloseTags: true,
+        autoCloseBrackets: true,
+        lineNumbers: true,
+      }
+    );
+
+    editorRef.current = editor;
+    editor.setSize("100%", "100%");
+
+    const handleLocalCodeChange = (instance, changes) => {
+      const { origin } = changes;
+      const code = instance.getValue();
+      onCodeChange(code);
+
+      if (origin !== "setValue" && socketRef.current) {
+        socketRef.current.emit(ACTIONS.CODE_CHANGE, {
+          roomId,
+          code,
+        });
+      }
     };
 
-    init();
-  }, []);
+    editor.on("change", handleLocalCodeChange);
+
+    return () => {
+      editor.off("change", handleLocalCodeChange);
+    };
+  }, [onCodeChange, roomId, socketRef]);
 
   // data receive from server
   useEffect(() => {
-    if (socketRef.current) {
-      socketRef.current.on(ACTIONS.CODE_CHANGE, ({ code }) => {
-        if (code !== null) {
-          editorRef.current.setValue(code);
-        }
-      });
+    const socket = socketRef.current;
+    if (!socket || !editorRef.current) {
+      return;
     }
-    return () => {
-      socketRef.current.off(ACTIONS.CODE_CHANGE);
+
+    const handleRemoteCodeChange = ({ code }) => {
+      if (code !== null && editorRef.current) {
+        editorRef.current.setValue(code);
+      }
     };
-  }, [socketRef.current]);
+
+    socket.on(ACTIONS.CODE_CHANGE, handleRemoteCodeChange);
+
+    return () => {
+      socket.off(ACTIONS.CODE_CHANGE, handleRemoteCodeChange);
+    };
+  }, [socketRef]);
 
   return (
     <div className="editor-wrapper">
